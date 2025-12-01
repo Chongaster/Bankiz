@@ -85,6 +85,10 @@
         .btn-danger { background: var(--red-light); color: var(--danger); padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; border: none; cursor: pointer; }
         .btn-edit { background: var(--blue-light); color: var(--primary); padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; border: none; cursor: pointer; margin-right: 5px;}
         .btn-copy { background: var(--blue-light); color: var(--primary); padding: 8px 15px; border-radius:6px; border:1px solid var(--border); cursor: pointer; font-size:0.9rem; font-weight:bold; }
+        
+        /* Quick Action Button in Table */
+        .btn-quick-add { background: var(--green-light); color: var(--success); border: 1px solid var(--success); padding: 2px 6px; border-radius: 4px; cursor: pointer; margin-left: 5px; font-size: 0.8rem; }
+        .btn-quick-add:hover { background: var(--success); color: white; }
 
         /* AUTH */
         #auth-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 3000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
@@ -766,7 +770,7 @@
             const amount = parseFloat(rawAmount);
 
             if (!date) return notify("Date manquante", 'error');
-            if (isNaN(amount) || amount <= 0) return notify("Montant invalide", 'error');
+            if (isNaN(amount)) return notify("Montant invalide", 'error');
 
             const originalText = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...'; btn.disabled = true;
 
@@ -807,6 +811,60 @@
                 document.getElementById('t-amount').value = ''; document.getElementById('t-desc').value = '';
                 btn.innerHTML = originalText; btn.disabled = false;
             } catch (e) { notify(e.message, 'error'); btn.disabled = false; btn.innerHTML = originalText; }
+        };
+        
+        window.forceAddCharge = async (cat) => {
+            if(await confirmModal(`Ajouter la charge ${safe(cat)} maintenant ?`)) {
+                let amount = 0;
+                // Find amount from recurring config or budget
+                if(state.recurring[cat]) amount = state.recurring[cat].amount;
+                else {
+                     const key = `${currentMonth}-${cat}`;
+                     if(state.budgets[key]) amount = state.budgets[key];
+                }
+                
+                const defaultAccId = state.accounts.length > 0 ? state.accounts[0].id : 'main';
+                
+                await addDoc(collection(db, "transactions"), { 
+                    uid: currentUser.uid, 
+                    date: new Date().toISOString().split('T')[0], 
+                    type: 'fixed', 
+                    cat: cat, 
+                    desc: 'Charge manuelle', 
+                    amount: parseFloat(amount), 
+                    checked: false, 
+                    accountId: defaultAccId 
+                });
+                notify("Charge ajoutée");
+            }
+        };
+        
+        window.updateRealCharge = async (cat, newVal) => {
+            const newAmount = parseFloat(newVal);
+            if(isNaN(newAmount)) return;
+            
+            // Find existing transaction for this month/category
+            const tx = state.transactions.find(t => t.date.startsWith(currentMonth) && t.cat === cat && t.type === 'fixed');
+            
+            if(tx) {
+                // Update existing
+                await updateDoc(doc(db, "transactions", tx.id), { amount: newAmount });
+                notify("Montant mis à jour");
+            } else {
+                // Create new if doesn't exist
+                const defaultAccId = state.accounts.length > 0 ? state.accounts[0].id : 'main';
+                await addDoc(collection(db, "transactions"), { 
+                    uid: currentUser.uid, 
+                    date: `${currentMonth}-01`, // Default to 1st of month
+                    type: 'fixed', 
+                    cat: cat, 
+                    desc: 'Charge ajustée', 
+                    amount: newAmount, 
+                    checked: false, 
+                    accountId: defaultAccId 
+                });
+                notify("Charge créée");
+            }
         };
 
         window.addRecurring = async () => { 
@@ -943,11 +1001,25 @@
                         const realCents = txs.reduce((a,b) => a + toCents(b.amount), 0);
                         
                         stats[statKey].p += plannedCents; stats[statKey].r += realCents;
+                        
                         let autoIcon = ''; if(type === 'fixed' && state.recurring[cat]) autoIcon = '<i class="fas fa-robot" style="color:#c084fc; font-size:0.8em"></i>';
                         let diffCents; if (type === 'income') diffCents = realCents - plannedCents; else diffCents = plannedCents - realCents;
                         const diffColor = diffCents >= 0 ? 'text-green' : 'text-red';
+                        
+                        // Logic for Fixed Charges "Quick Actions"
+                        let actionBtn = '';
+                        let realCellContent = `<span class="${realCents>plannedCents && type!=='income'?'text-red':''}">${fromCents(realCents)}€</span>`;
 
-                        tbody.innerHTML += `<tr><td class="row-name">${safe(cat)} ${autoIcon}</td><td><input type="number" class="plan-input" value="${fromCents(plannedCents)}" onchange="window.saveBudget('${safe(cat)}', this.value)">€</td><td class="amount-cell ${realCents>plannedCents && type!=='income'?'text-red':''}">${fromCents(realCents)}€</td><td class="amount-cell ${diffColor}">${(diffCents > 0 ? '+' : '') + fromCents(diffCents)}€</td></tr>`;
+                        if(type === 'fixed') {
+                            // Add "Force Add" button if 0
+                            if(realCents === 0) {
+                                actionBtn = `<button class="btn-quick-add" onclick="window.forceAddCharge('${safe(cat)}')"><i class="fas fa-bolt"></i></button>`;
+                            }
+                            // Make Real Column Editable
+                            realCellContent = `<input type="number" class="plan-input" style="color:${realCents>plannedCents ? 'var(--danger)' : 'var(--success)'}" value="${fromCents(realCents)}" onchange="window.updateRealCharge('${safe(cat)}', this.value)">`;
+                        }
+
+                        tbody.innerHTML += `<tr><td class="row-name">${safe(cat)} ${autoIcon} ${actionBtn}</td><td><input type="number" class="plan-input" value="${fromCents(plannedCents)}" onchange="window.saveBudget('${safe(cat)}', this.value)">€</td><td class="amount-cell">${realCellContent}</td><td class="amount-cell ${diffColor}">${(diffCents > 0 ? '+' : '') + fromCents(diffCents)}€</td></tr>`;
                     });
                 }
             };
