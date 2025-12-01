@@ -25,6 +25,7 @@
             --border: #e2e8f0;
             --danger: #ef4444;
             --success: #22c55e;
+            --warning: #f59e0b;
             
             --blue-light: #e0f2fe; 
             --pink-light: #fce7f3;
@@ -87,7 +88,8 @@
         .btn-copy { background: var(--blue-light); color: var(--primary); padding: 8px 15px; border-radius:6px; border:1px solid var(--border); cursor: pointer; font-size:0.9rem; font-weight:bold; }
         
         /* Quick Action Button in Table */
-        .btn-quick-add { background: var(--green-light); color: var(--success); border: 1px solid var(--success); padding: 2px 6px; border-radius: 4px; cursor: pointer; margin-left: 5px; font-size: 0.8rem; }
+        /* Modified for alignment: margin-right instead of left */
+        .btn-quick-add { background: var(--green-light); color: var(--success); border: 1px solid var(--success); padding: 2px 6px; border-radius: 4px; cursor: pointer; margin-right: 8px; font-size: 0.8rem; }
         .btn-quick-add:hover { background: var(--success); color: white; }
 
         /* AUTH */
@@ -158,6 +160,11 @@
         
         input.plan-input { width: 100%; border: 1px solid var(--border); background: var(--bg); text-align: right; color: var(--text-light); font-weight: bold; padding: 4px 8px; border-radius: 4px; }
         input.plan-input:focus { border-color: var(--primary); background: var(--panel-bg); color: var(--text); }
+
+        /* BUDGET GAUGE */
+        .budget-gauge-container { background: var(--border); border-radius: 20px; height: 24px; width: 100%; position: relative; overflow: hidden; margin: 10px 0; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); }
+        .budget-gauge-fill { height: 100%; background: var(--success); width: 0%; transition: width 0.5s ease, background 0.3s ease; border-radius: 20px; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; color: white; font-size: 0.75rem; font-weight: bold; text-shadow: 0 1px 1px rgba(0,0,0,0.3); }
+        .budget-gauge-text { text-align: center; font-size: 0.85rem; color: var(--text-light); margin-top: 5px; font-weight: 600; }
 
         .progress-bar { width: 100%; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 5px; }
         .progress-fill { height: 100%; background: var(--danger); transition: width 0.3s; }
@@ -338,13 +345,35 @@
                 <div class="panel span-2 h-blue" style="flex-direction: row; justify-content: space-around; padding: 20px; align-items: center;">
                     <div style="text-align: center;"><small style="font-weight:bold;">RESTE A VIVRE (GLOBAL)</small><div class="kpi-val" id="month-remaining">0 €</div></div>
                 </div>
+                
+                <!-- NEW GLOBAL VISUAL: BUDGET GAUGE -->
+                <div class="panel span-2" style="padding:20px; justify-content:center">
+                    <small style="font-weight:bold; color:var(--text-light); text-align:center; display:block">TAUX DE CONSOMMATION DU BUDGET</small>
+                    <div class="budget-gauge-container">
+                        <div id="global-budget-gauge" class="budget-gauge-fill"></div>
+                    </div>
+                    <div id="global-budget-text" class="budget-gauge-text">0 € / 0 €</div>
+                </div>
+
                 <div class="panel" style="padding:20px; text-align:center; justify-content:center"><small style="font-weight:bold; color:var(--text-light)">TOTAL DÉPENSÉ</small><div class="kpi-val" id="month-spent">0 €</div></div>
                 <div class="panel" style="padding:20px; text-align:center; justify-content:center"><small style="font-weight:bold; color:var(--text-light)">TAUX ENDETTEMENT</small><div class="kpi-val" id="month-ratio">0%</div></div>
                 
-                <div class="panel span-2" style="background:var(--panel-bg); height: 160px; padding: 10px; justify-content: center;"><canvas id="monthChart" style="max-height: 100%;"></canvas></div>
-                <div class="panel"><div class="panel-header h-blue">Flux Financiers</div><table><thead><tr><th>Poste</th><th style="text-align:right">Réel</th></tr></thead><tbody><tr><td class="row-name">Revenus</td><td class="amount-cell text-green" id="d-inc-r">0</td></tr><tr><td class="row-name">Charges Fixes</td><td class="amount-cell text-red" id="d-fix-r">0</td></tr><tr><td class="row-name">Dépenses Var.</td><td class="amount-cell text-red" id="d-var-r">0</td></tr><tr style="background:var(--red-light)"><td class="row-name" style="color:var(--danger)">Crédits</td><td class="amount-cell text-red" id="d-cred-r" style="font-weight:bold">0</td></tr><tr style="font-weight:bold; border-top:2px solid var(--border);"><td>SOLDE</td><td class="amount-cell" id="d-sol-r">0</td></tr></tbody></table></div>
+                <!-- UPDATED: SYNTHESE BUDGETAIRE (ex Flux Financiers) -->
+                <div class="panel span-2"><div class="panel-header h-blue">Synthèse Budgétaire</div>
+                    <table>
+                        <thead><tr><th>Poste</th><th style="text-align:right">Budget</th><th style="text-align:right">Réel</th><th style="text-align:right">Écart</th></tr></thead>
+                        <tbody>
+                            <tr><td class="row-name">Revenus</td><td class="amount-cell" id="s-inc-p">0</td><td class="amount-cell text-green" id="s-inc-r">0</td><td class="amount-cell" id="s-inc-d">0</td></tr>
+                            <tr><td class="row-name">Charges Fixes</td><td class="amount-cell" id="s-fix-p">0</td><td class="amount-cell text-red" id="s-fix-r">0</td><td class="amount-cell" id="s-fix-d">0</td></tr>
+                            <tr><td class="row-name">Dépenses Var.</td><td class="amount-cell" id="s-var-p">0</td><td class="amount-cell text-red" id="s-var-r">0</td><td class="amount-cell" id="s-var-d">0</td></tr>
+                            <tr style="background:var(--red-light)"><td class="row-name" style="color:var(--danger)">Crédits</td><td class="amount-cell" id="s-cred-p">0</td><td class="amount-cell text-red" id="s-cred-r" style="font-weight:bold">0</td><td class="amount-cell" id="s-cred-d">0</td></tr>
+                            <tr style="font-weight:bold; border-top:2px solid var(--border);"><td>TOTAL DÉPENSES</td><td class="amount-cell" id="s-tot-p">0</td><td class="amount-cell" id="s-tot-r">0</td><td class="amount-cell" id="s-tot-d">0</td></tr>
+                            <tr style="font-weight:bold; background:var(--blue-light)"><td>SOLDE THÉORIQUE</td><td class="amount-cell" id="s-sol-p">0</td><td class="amount-cell" id="s-sol-r">0</td><td class="amount-cell"></td></tr>
+                        </tbody>
+                    </table>
+                </div>
                 
-                <div class="panel"><div class="panel-header h-red">Mensualités Crédits</div><table><tbody id="table-credits-dashboard"></tbody></table></div>
+                <div class="panel span-2" style="background:var(--panel-bg); height: 250px; padding: 10px; justify-content: center;"><canvas id="monthChart" style="max-height: 100%;"></canvas></div>
                 
                 <!-- NEW BALANCED ROW: 3 EQUAL COLUMNS -->
                 <div class="tri-grid">
@@ -352,6 +381,8 @@
                     <div class="panel"><div class="panel-header h-yellow">Variables</div><table id="table-variable-header"><thead><tr><th>Poste</th><th>Budget</th><th>Réel</th><th>Reste</th></tr></thead><tbody id="table-variable"></tbody></table></div>
                     <div class="panel"><div class="panel-header h-green">Revenus</div><table id="table-income-header"><thead><tr><th>Source</th><th>Prévu</th><th>Réel</th><th>Diff.</th></tr></thead><tbody id="table-income"></tbody></table></div>
                 </div>
+                
+                <div class="panel span-4"><div class="panel-header h-red">Mensualités Crédits</div><table><tbody id="table-credits-dashboard"></tbody></table></div>
             </div>
         </div>
 
@@ -590,6 +621,17 @@
             else overlay.classList.remove('active');
         };
 
+        // Toggle Recurring Active Status
+        window.toggleRecurringStatus = async (name) => {
+            const current = state.recurring[name];
+            const isActive = current.active !== false;
+            
+            state.recurring[name] = { ...current, active: !isActive };
+            await setDoc(doc(db, "users_settings", currentUser.uid), { recurring: state.recurring }, { merge: true });
+            refreshUI();
+            notify(`Charge ${!isActive ? 'activée' : 'désactivée'}`);
+        };
+
         // --- AUTH & INIT ---
         function initYearSelector() {
             const select = document.getElementById('annualYearSelect'); select.innerHTML = '';
@@ -689,6 +731,9 @@
             const defaultAccId = state.accounts.length > 0 ? state.accounts[0].id : 'main';
 
             for (const [name, config] of Object.entries(state.recurring)) {
+                // Skip if automation is disabled
+                if (config.active === false) continue;
+                
                 if (dayOfMonth >= config.day) {
                     const exists = state.transactions.some(t => t.date.startsWith(currentMonthStr) && t.cat === name && t.desc === 'Charge fixe automatique');
                     if (!exists) {
@@ -872,8 +917,11 @@
             const amount = parseFloat(document.getElementById('r-amount').value);
             const day = parseInt(document.getElementById('r-day').value);
             if(!name || isNaN(amount) || isNaN(day)) return notify('Champs requis invalides', 'error');
+            
+            const isActive = (editingChargeName && state.recurring[editingChargeName]) ? state.recurring[editingChargeName].active : true;
+            
             if (editingChargeName && editingChargeName !== name) delete state.recurring[editingChargeName];
-            state.recurring[name] = { amount, day };
+            state.recurring[name] = { amount, day, active: isActive !== false };
             if (!state.categories.fixed.includes(name)) state.categories.fixed.push(name);
             await setDoc(doc(db, "users_settings", currentUser.uid), { recurring: state.recurring, categories: state.categories }, { merge: true });
             window.cancelEditRecurring(); notify("Charge planifiée enregistrée");
@@ -1001,8 +1049,15 @@
                         const realCents = txs.reduce((a,b) => a + toCents(b.amount), 0);
                         
                         stats[statKey].p += plannedCents; stats[statKey].r += realCents;
+                        let autoIcon = ''; 
                         
-                        let autoIcon = ''; if(type === 'fixed' && state.recurring[cat]) autoIcon = '<i class="fas fa-robot" style="color:#c084fc; font-size:0.8em"></i>';
+                        // Add robot icon if automation exists AND is active
+                        if(type === 'fixed' && state.recurring[cat]) {
+                             if (state.recurring[cat].active !== false) {
+                                 autoIcon = '<i class="fas fa-robot" style="color:#c084fc; font-size:0.9em; margin-right:5px"></i>';
+                             }
+                        }
+                        
                         let diffCents; if (type === 'income') diffCents = realCents - plannedCents; else diffCents = plannedCents - realCents;
                         const diffColor = diffCents >= 0 ? 'text-green' : 'text-red';
                         
@@ -1013,13 +1068,13 @@
                         if(type === 'fixed') {
                             // Add "Force Add" button if 0
                             if(realCents === 0) {
-                                actionBtn = `<button class="btn-quick-add" onclick="window.forceAddCharge('${safe(cat)}')"><i class="fas fa-bolt"></i></button>`;
+                                actionBtn = `<button class="btn-quick-add" style="margin-right:5px" onclick="window.forceAddCharge('${safe(cat)}')"><i class="fas fa-bolt"></i></button>`;
                             }
                             // Make Real Column Editable
                             realCellContent = `<input type="number" class="plan-input" style="color:${realCents>plannedCents ? 'var(--danger)' : 'var(--success)'}" value="${fromCents(realCents)}" onchange="window.updateRealCharge('${safe(cat)}', this.value)">`;
                         }
 
-                        tbody.innerHTML += `<tr><td class="row-name">${safe(cat)} ${autoIcon} ${actionBtn}</td><td><input type="number" class="plan-input" value="${fromCents(plannedCents)}" onchange="window.saveBudget('${safe(cat)}', this.value)">€</td><td class="amount-cell">${realCellContent}</td><td class="amount-cell ${diffColor}">${(diffCents > 0 ? '+' : '') + fromCents(diffCents)}€</td></tr>`;
+                        tbody.innerHTML += `<tr><td class="row-name"><div style="display:flex; align-items:center">${autoIcon}${actionBtn}<span>${safe(cat)}</span></div></td><td><input type="number" class="plan-input" value="${fromCents(plannedCents)}" onchange="window.saveBudget('${safe(cat)}', this.value)">€</td><td class="amount-cell">${realCellContent}</td><td class="amount-cell ${diffColor}">${(diffCents > 0 ? '+' : '') + fromCents(diffCents)}€</td></tr>`;
                     });
                 }
             };
@@ -1037,14 +1092,73 @@
             const creditToUse = realCreditsPaidCents > 0 ? realCreditsPaidCents : budgetedCreditsCents;
             const incomeToUse = stats.inc.r > 0 ? stats.inc.r : stats.inc.p;
             const monthRatio = incomeToUse > 0 ? (creditToUse / incomeToUse) * 100 : 0;
+
+            // --- UPDATE GLOBAL BUDGET GAUGE ---
+            const totalPlannedExpensesCents = stats.fix.p + stats.var.p + budgetedCreditsCents;
+            const gaugeFill = document.getElementById('global-budget-gauge');
+            const gaugeText = document.getElementById('global-budget-text');
+            
+            let percent = 0;
+            if(totalPlannedExpensesCents > 0) {
+                percent = (totalExpensesCents / totalPlannedExpensesCents) * 100;
+            }
+            
+            // Clamp percentage visual to max 100%
+            const visualPercent = Math.min(percent, 100);
+            
+            // Update visual
+            gaugeFill.style.width = `${visualPercent}%`;
+            gaugeFill.innerText = `${percent.toFixed(0)}%`;
+            gaugeText.innerText = `${fromCents(totalExpensesCents)} € / ${fromCents(totalPlannedExpensesCents)} €`;
+            
+            // Color logic for gauge
+            if(percent < 75) gaugeFill.style.background = 'var(--success)';
+            else if(percent < 95) gaugeFill.style.background = 'var(--warning)';
+            else gaugeFill.style.background = 'var(--danger)';
             
             document.getElementById('month-spent').innerText = fromCents(totalExpensesCents) + ' €'; document.getElementById('month-spent').className = `kpi-val`; 
             document.getElementById('month-remaining').innerText = fromCents(remainingCents) + ' €'; document.getElementById('month-remaining').className = `kpi-val ${alertClass}`;
             document.getElementById('month-ratio').innerText = monthRatio.toFixed(1) + '%'; document.getElementById('month-ratio').className = 'kpi-val ' + (monthRatio > 35 ? 'text-red' : 'text-green');
 
-            document.getElementById('d-inc-r').innerText = fromCents(stats.inc.r) + ' €'; document.getElementById('d-fix-r').innerText = fromCents(stats.fix.r) + ' €';
-            document.getElementById('d-var-r').innerText = fromCents(stats.var.r) + ' €'; document.getElementById('d-cred-r').innerText = fromCents(realCreditsPaidCents) + ' €';
-            document.getElementById('d-sol-r').innerText = fromCents(stats.inc.r - totalExpensesCents) + ' €';
+            // Update Synthèse Globale Table
+            document.getElementById('s-inc-p').innerText = fromCents(stats.inc.p) + ' €';
+            document.getElementById('s-inc-r').innerText = fromCents(stats.inc.r) + ' €';
+            let incDiff = stats.inc.r - stats.inc.p;
+            document.getElementById('s-inc-d').innerText = (incDiff > 0 ? '+' : '') + fromCents(incDiff) + ' €';
+            document.getElementById('s-inc-d').className = `amount-cell ${incDiff >= 0 ? 'text-green' : 'text-red'}`;
+
+            document.getElementById('s-fix-p').innerText = fromCents(stats.fix.p) + ' €';
+            document.getElementById('s-fix-r').innerText = fromCents(stats.fix.r) + ' €';
+            let fixDiff = stats.fix.p - stats.fix.r;
+            document.getElementById('s-fix-d').innerText = (fixDiff > 0 ? '+' : '') + fromCents(fixDiff) + ' €';
+            document.getElementById('s-fix-d').className = `amount-cell ${fixDiff >= 0 ? 'text-green' : 'text-red'}`;
+
+            document.getElementById('s-var-p').innerText = fromCents(stats.var.p) + ' €';
+            document.getElementById('s-var-r').innerText = fromCents(stats.var.r) + ' €';
+            let varDiff = stats.var.p - stats.var.r;
+            document.getElementById('s-var-d').innerText = (varDiff > 0 ? '+' : '') + fromCents(varDiff) + ' €';
+            document.getElementById('s-var-d').className = `amount-cell ${varDiff >= 0 ? 'text-green' : 'text-red'}`;
+
+            document.getElementById('s-cred-p').innerText = fromCents(budgetedCreditsCents) + ' €';
+            document.getElementById('s-cred-r').innerText = fromCents(realCreditsPaidCents) + ' €';
+            let credDiff = budgetedCreditsCents - realCreditsPaidCents;
+            document.getElementById('s-cred-d').innerText = (credDiff > 0 ? '+' : '') + fromCents(credDiff) + ' €';
+            document.getElementById('s-cred-d').className = `amount-cell ${credDiff >= 0 ? 'text-green' : 'text-red'}`;
+
+            // Total Expenses Row
+            const totExpP = stats.fix.p + stats.var.p + budgetedCreditsCents;
+            const totExpR = stats.fix.r + stats.var.r + realCreditsPaidCents;
+            const totExpD = totExpP - totExpR;
+            document.getElementById('s-tot-p').innerText = fromCents(totExpP) + ' €';
+            document.getElementById('s-tot-r').innerText = fromCents(totExpR) + ' €';
+            document.getElementById('s-tot-d').innerText = (totExpD > 0 ? '+' : '') + fromCents(totExpD) + ' €';
+            document.getElementById('s-tot-d').className = `amount-cell ${totExpD >= 0 ? 'text-green' : 'text-red'}`;
+
+            // Solde Row (Theoretical Balance for month)
+            const solP = stats.inc.p - totExpP;
+            const solR = stats.inc.r - totExpR;
+            document.getElementById('s-sol-p').innerText = fromCents(solP) + ' €';
+            document.getElementById('s-sol-r').innerText = fromCents(solR) + ' €';
 
             const isDark = document.body.classList.contains('dark-mode'); const textColor = isDark ? '#cbd5e1' : '#334155';
             const ctx = document.getElementById('monthChart').getContext('2d'); if(charts.month) charts.month.destroy();
@@ -1056,9 +1170,30 @@
             state.credits.forEach(c => { const start = new Date(c.start); const end = new Date(c.end); const totalMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()); const monthsPassed = (today.getFullYear() - start.getFullYear()) * 12 + (today.getMonth() - start.getMonth()); let remaining = c.total; let progressPercent = 0; if (monthsPassed > 0) { const capitalPaid = (c.total / totalMonths) * monthsPassed; remaining = Math.max(0, c.total - capitalPaid); progressPercent = Math.min(100, (monthsPassed / totalMonths) * 100); }
                 tbody.innerHTML += `<tr><td><b>${safe(c.name)}</b><br><small style="color:var(--text-light)">J-${c.day}</small></td><td>${remaining.toFixed(0)} €</td><td style="font-weight:bold; color:var(--danger)">${c.monthly} €</td><td>${c.end}</td><td style="width:100px"><div class="progress-bar"><div class="progress-fill" style="width:${progressPercent}%"></div></div></td><td style="white-space:nowrap"><button class="btn-edit" onclick="window.editCredit(${c.id})"><i class="fas fa-pen"></i></button><button class="btn-danger" onclick="window.deleteCredit(${c.id})"><i class="fas fa-times"></i></button></td></tr>`; });
         }
-        function renderChargesList() { /* ... unchanged ... */
-            const tbody = document.getElementById('recurring-list-body'); tbody.innerHTML = '';
-            for (const [name, config] of Object.entries(state.recurring)) { tbody.innerHTML += `<tr><td><b>${safe(name)}</b></td><td style="font-weight:bold">${config.amount.toFixed(2)} €</td><td>Le ${config.day}</td><td><span style="color:var(--success)">Actif ⚡</span></td><td style="white-space:nowrap"><button class="btn-edit" onclick="window.editRecurring('${safe(name)}')"><i class="fas fa-pen"></i></button><button class="btn-danger" onclick="window.deleteRecurring('${safe(name)}')"><i class="fas fa-times"></i></button></td></tr>`; }
+        function renderChargesList() {
+            const tbody = document.getElementById('recurring-list-body'); 
+            tbody.innerHTML = '';
+            
+            for (const [name, config] of Object.entries(state.recurring)) {
+                const isActive = config.active !== false; // Default true
+                
+                // Toggle Button
+                const toggleBtn = isActive 
+                    ? `<button class="btn" style="padding:2px 8px; font-size:0.8rem; background:var(--green-light); color:var(--success); border:1px solid var(--success)" onclick="window.toggleRecurringStatus('${safe(name)}')"><i class="fas fa-toggle-on fa-lg"></i> Actif</button>`
+                    : `<button class="btn" style="padding:2px 8px; font-size:0.8rem; background:var(--border); color:var(--text-light); border:1px solid var(--text-light)" onclick="window.toggleRecurringStatus('${safe(name)}')"><i class="fas fa-toggle-off fa-lg"></i> Inactif</button>`;
+
+                tbody.innerHTML += `
+                <tr>
+                    <td><b>${safe(name)}</b></td>
+                    <td style="font-weight:bold">${config.amount.toFixed(2)} €</td>
+                    <td>Le ${config.day}</td>
+                    <td>${toggleBtn}</td>
+                    <td style="white-space:nowrap">
+                        <button class="btn-edit" onclick="window.editRecurring('${safe(name)}')"><i class="fas fa-pen"></i></button>
+                        <button class="btn-danger" onclick="window.deleteRecurring('${safe(name)}')"><i class="fas fa-times"></i></button>
+                    </td>
+                </tr>`; 
+            }
         }
 
         function renderTransList() {
