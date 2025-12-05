@@ -184,13 +184,19 @@
         .modal-content { background: var(--panel-bg); padding: 25px; border-radius: 12px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .modal-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 20px; }
 
+        /* CUSTOM INPUT PROMPT MODAL */
+        #prompt-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 4000; display: none; align-items: center; justify-content: center; }
+        .prompt-content { background: var(--panel-bg); padding: 25px; border-radius: 12px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+
         /* ACCOUNT CARDS (ACCOUNTS PAGE) */
-        .account-card { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; display: flex; flex-direction:column; justify-content: center; align-items: center; box-shadow: var(--shadow); text-align:center; min-height: 120px;}
+        .account-card { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; display: flex; flex-direction:column; justify-content: center; align-items: center; box-shadow: var(--shadow); text-align:center; min-height: 120px; position:relative; }
         .account-name { font-weight: 600; color: var(--text-light); font-size: 0.9rem; text-transform: uppercase; margin-bottom:10px; }
-        .account-balance { font-family: 'Consolas', monospace; font-weight: 800; font-size: 1.8rem; color: var(--text); }
+        .account-balance { font-family: 'Consolas', monospace; font-weight: 800; font-size: 1.8rem; color: var(--text); cursor:pointer; transition:0.2s; display:flex; align-items:center; gap:8px; }
+        .account-balance:hover { color: var(--primary); }
         .acc-type-tag { font-size: 0.7rem; text-transform: uppercase; padding: 3px 8px; border-radius: 12px; margin-top: 10px; display:inline-block; }
         .acc-current { background: var(--blue-light); color: var(--primary); }
         .acc-savings { background: var(--green-light); color: var(--success); }
+        .edit-balance-icon { font-size:0.9rem; opacity:0.5; }
 
         /* RESPONSIVE & MOBILE LOGIC */
         /* Changed from 1000px to 1024px to catch more devices, and strictly forcing 1 column */
@@ -261,6 +267,19 @@
         </div>
     </div>
 
+    <!-- Prompt Modal (New) -->
+    <div id="prompt-modal">
+        <div class="prompt-content">
+            <h3 style="margin-top:0; color:var(--text)">Ajuster le solde</h3>
+            <p style="color:var(--text-light)">Entrez le solde réel affiché par votre banque :</p>
+            <input type="number" id="prompt-input" step="0.01" style="margin-bottom:15px; font-size:1.2rem; font-weight:bold; text-align:center">
+            <div class="modal-buttons">
+                <button class="btn" style="background:var(--border); color:var(--text)" onclick="window.closePrompt(null)">Annuler</button>
+                <button class="btn btn-primary" onclick="window.closePrompt(document.getElementById('prompt-input').value)">Valider</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Nav Overlay (for mobile) -->
     <div id="nav-overlay" onclick="window.toggleNav()"></div>
 
@@ -327,6 +346,7 @@
         <!-- PAGE: ACCOUNTS LIST -->
         <div id="accounts" class="page">
             <h1>Mes Comptes</h1>
+            <p style="color:var(--text-light); margin-bottom:20px"><i class="fas fa-info-circle"></i> Cliquez sur le montant d'un compte pour ajuster son solde réel.</p>
             <div id="accounts-list-display" class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
                 <!-- Account cards injected here -->
             </div>
@@ -602,6 +622,19 @@
                 }
             });
         };
+        
+        // Custom Prompt Promise
+        window.promptModal = () => {
+            return new Promise((resolve) => {
+                document.getElementById('prompt-input').value = '';
+                document.getElementById('prompt-modal').style.display = 'flex';
+                document.getElementById('prompt-input').focus();
+                window.closePrompt = (result) => {
+                    document.getElementById('prompt-modal').style.display = 'none';
+                    resolve(result);
+                }
+            });
+        };
 
         // Dark Mode
         window.toggleTheme = () => {
@@ -785,6 +818,36 @@
                 refreshUI();
             }
         }
+        
+        // --- RECONCILIATION TOOL ---
+        window.adjustBalance = async (accId) => {
+            const acc = state.accounts.find(a => a.id === accId);
+            if(!acc) return;
+            
+            const realBalanceStr = await promptModal();
+            if(realBalanceStr === null) return; // Cancelled
+            
+            const realBalance = parseFloat(realBalanceStr);
+            if(isNaN(realBalance)) return notify("Montant invalide", 'error');
+            
+            // Calculate current flow
+            let flowCents = 0;
+            state.transactions.filter(t => t.accountId === acc.id).forEach(t => {
+                if(t.type === 'income' || t.type === 'transfer_in') flowCents += toCents(t.amount);
+                else flowCents -= toCents(t.amount);
+            });
+            
+            // Formula: Real = Initial + Flow  =>  Initial = Real - Flow
+            const newInitialCents = toCents(realBalance) - flowCents;
+            const newInitial = fromCents(newInitialCents); // Convert back to float
+            
+            // Update Account
+            acc.initialBalance = parseFloat(newInitial);
+            await setDoc(doc(db, "users_settings", currentUser.uid), { accounts: state.accounts }, { merge: true });
+            
+            notify("Solde ajusté avec succès");
+            refreshUI();
+        };
 
         // --- ACTIONS ---
         window.updateTransFormUI = () => {
@@ -1026,7 +1089,10 @@
                 <div class="account-card">
                     <div class="account-name">${safe(acc.name)}</div>
                     <span class="acc-type-tag ${typeClass}">${typeLabel}</span>
-                    <div class="account-balance" style="margin-top:15px; color: ${balCents < 0 ? 'var(--danger)' : 'var(--text)'}">${fromCents(balCents)} €</div>
+                    <div class="account-balance" onclick="window.adjustBalance('${acc.id}')" title="Cliquer pour ajuster">
+                        ${fromCents(balCents)} €
+                        <i class="fas fa-pen edit-balance-icon" style="margin-left:5px; font-size:0.8rem"></i>
+                    </div>
                 </div>`;
             });
         };
@@ -1074,7 +1140,20 @@
                             realCellContent = `<input type="number" class="plan-input" style="color:${realCents>plannedCents ? 'var(--danger)' : 'var(--success)'}" value="${fromCents(realCents)}" onchange="window.updateRealCharge('${safe(cat)}', this.value)">`;
                         }
 
-                        tbody.innerHTML += `<tr><td class="row-name"><div style="display:flex; align-items:center">${autoIcon}${actionBtn}<span>${safe(cat)}</span></div></td><td><input type="number" class="plan-input" value="${fromCents(plannedCents)}" onchange="window.saveBudget('${safe(cat)}', this.value)">€</td><td class="amount-cell">${realCellContent}</td><td class="amount-cell ${diffColor}">${(diffCents > 0 ? '+' : '') + fromCents(diffCents)}€</td></tr>`;
+                        // Updated Order: Icon + Button + Name in a Flex container
+                        tbody.innerHTML += `
+                        <tr>
+                            <td class="row-name">
+                                <div style="display:flex; align-items:center;">
+                                    ${autoIcon}
+                                    ${actionBtn}
+                                    <span>${safe(cat)}</span>
+                                </div>
+                            </td>
+                            <td><input type="number" class="plan-input" value="${fromCents(plannedCents)}" onchange="window.saveBudget('${safe(cat)}', this.value)">€</td>
+                            <td class="amount-cell">${realCellContent}</td>
+                            <td class="amount-cell ${diffColor}">${(diffCents > 0 ? '+' : '') + fromCents(diffCents)}€</td>
+                        </tr>`;
                     });
                 }
             };
@@ -1086,9 +1165,14 @@
             state.credits.forEach(c => { credTable.innerHTML += `<tr><td>${safe(c.name)}</td><td class="amount-cell text-red">${c.monthly.toFixed(2)} €</td></tr>`; });
 
             const totalExpensesCents = stats.fix.r + stats.var.r + realCreditsPaidCents; 
-            const remainingCents = stats.inc.r - totalExpensesCents;
+            
+            // Reste à vivre PROJECTION (Option B)
+            const totalProjectedExpensesCents = stats.fix.p + budgetedCreditsCents + stats.var.r;
+            const remainingCents = stats.inc.p - totalProjectedExpensesCents;
+            
             const remainingVal = remainingCents / 100;
             const alertClass = (remainingVal < 250) ? 'text-red' : '';
+            
             const creditToUse = realCreditsPaidCents > 0 ? realCreditsPaidCents : budgetedCreditsCents;
             const incomeToUse = stats.inc.r > 0 ? stats.inc.r : stats.inc.p;
             const monthRatio = incomeToUse > 0 ? (creditToUse / incomeToUse) * 100 : 0;
