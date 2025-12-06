@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bankiz 🧊</title>
     
-    <!-- Chart.js pour les graphiques -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- FontAwesome pour les icônes -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Toastify pour les notifications jolies -->
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     
@@ -99,7 +96,7 @@
 
         /* NAV (DESKTOP DEFAULT) */
         nav { width: 260px; background: var(--panel-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; z-index: 10; overflow-y: auto; transition: 0.3s; flex-shrink: 0; }
-        nav h2 { margin-bottom: 30px; color: var(--primary); display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        nav h2 { margin-bottom: 30px; color: var(--primary); display: flex; align-items: center; gap: 10px; cursor: pointer; justify-content: space-between; }
         .nav-item { padding: 12px 15px; cursor: pointer; border-radius: 8px; margin-bottom: 8px; color: var(--text-light); font-weight: 500; transition: 0.2s; display: flex; align-items: center; gap: 12px; }
         .nav-item:hover { background: var(--bg); color: var(--primary); }
         .nav-item.active { background: var(--blue-light); color: var(--primary); font-weight: bold; }
@@ -112,13 +109,15 @@
         .logo-img { width: 40px; height: 40px; object-fit: contain; display: block; margin: 0 auto; image-rendering: pixelated; }
 
         /* DESKTOP TOGGLE BUTTON */
-        /* FIXED: Removed :not(.nav-temp-open) so button stays visible */
         #desktop-menu-btn { display: none; position: fixed; top: 15px; left: 20px; z-index: 100; background: var(--panel-bg); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; cursor: pointer; box-shadow: var(--shadow); color: var(--primary); }
 
         /* NEW DESKTOP NAV LOGIC */
         /* When preference 'auto-hide' is ON */
         body.desktop-auto-hide nav { width: 0; padding: 0; border: none; overflow: hidden; }
         body.desktop-auto-hide #desktop-menu-btn { display: block; }
+        
+        /* CORRECTION: Masquer le bouton d'arrière-plan (flottant) quand le menu est ouvert */
+        body.desktop-auto-hide.nav-temp-open #desktop-menu-btn { display: none !important; }
         
         /* Exception: When we temporarily open it */
         body.desktop-auto-hide.nav-temp-open nav { width: 260px; padding: 20px; border-right: 1px solid var(--border); }
@@ -273,13 +272,11 @@
 </head>
 <body>
 
-    <!-- Loader -->
     <div id="loader">
         <i class="fas fa-robot fa-spin fa-2x" style="color:var(--primary); margin-bottom:10px;"></i>
         <span style="font-weight:bold; color:var(--text)">Synchronisation...</span>
     </div>
 
-    <!-- Confirm Modal -->
     <div id="confirm-modal">
         <div class="modal-content">
             <h3 style="margin-top:0; color:var(--text)">Confirmation</h3>
@@ -291,7 +288,6 @@
         </div>
     </div>
 
-    <!-- Prompt Modal -->
     <div id="prompt-modal">
         <div class="prompt-content">
             <h3 style="margin-top:0; color:var(--text)">Ajuster le solde</h3>
@@ -304,7 +300,6 @@
         </div>
     </div>
 
-    <!-- DETAILS MODAL (New) -->
     <div id="details-modal">
         <div class="modal-content" style="max-width:500px; text-align:left">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
@@ -315,22 +310,18 @@
         </div>
     </div>
 
-    <!-- Nav Overlay (for mobile) -->
     <div id="nav-overlay" onclick="window.toggleNav()"></div>
 
-    <!-- Auth Screen -->
     <div id="auth-screen">
         <div class="auth-box">
             <h2 style="color:var(--primary); margin-bottom:20px;">🧊 Bankiz</h2>
             <input type="email" id="auth-email" placeholder="Email"><br><br>
             <input type="password" id="auth-pass" placeholder="Mot de passe">
             <button class="auth-btn" style="margin-top:15px" onclick="window.handleAuth()">Se Connecter</button>
-            <!-- REGISTRATION REMOVED FOR SECURITY -->
             <p id="auth-error" style="color:var(--danger); font-size:0.9rem; margin-top:10px;"></p>
         </div>
     </div>
 
-    <!-- Mobile Header -->
     <div id="mobile-header">
         <div style="display:flex; align-items:center; gap:15px">
             <i class="fas fa-bars fa-lg" style="color:var(--text); cursor:pointer" onclick="window.toggleNav()"></i>
@@ -338,14 +329,15 @@
         </div>
     </div>
 
-    <!-- Desktop Menu Trigger (Visible only when nav auto-hide preference is enabled) -->
     <div id="desktop-menu-btn" onclick="window.toggleDesktopNav()">
         <i class="fas fa-bars fa-lg"></i>
     </div>
 
-    <!-- Navigation -->
     <nav id="app-nav" style="display:none;">
-        <h2 onclick="window.location.reload()"><i class="fas fa-igloo"></i> Bankiz <div id="desktop-menu-btn" onclick="window.toggleDesktopNav()"><i class="fas fa-bars fa-lg"></i></div></h2>
+        <h2 onclick="window.location.reload()">
+            <span><i class="fas fa-igloo"></i> Bankiz</span>
+            <i class="fas fa-times" onclick="window.toggleDesktopNav()" style="font-size:1rem; cursor:pointer; color:var(--text-light)" title="Fermer le menu"></i>
+        </h2>
         <div class="nav-item active" onclick="window.showPage('home')"><i class="fas fa-chart-pie"></i> Résumé Annuel</div>
         <div class="nav-item" onclick="window.showPage('accounts')"><i class="fas fa-university"></i> Comptes</div>
         <div class="nav-item" onclick="window.showPage('dashboard')"><i class="fas fa-columns"></i> Mois (Détail)</div>
@@ -364,9 +356,7 @@
         <div class="nav-item logout-btn" onclick="window.logout()"><i class="fas fa-sign-out-alt"></i> Déconnexion</div>
     </nav>
 
-    <!-- Main Content -->
     <main id="app-main">
-        <!-- PAGE: HOME (ANNUAL) -->
         <div id="home" class="page active">
             <div class="header-controls"><h1>Vue d'ensemble</h1><select id="annualYearSelect" onchange="window.renderAnnual()" style="width:auto"></select></div>
             
@@ -379,16 +369,13 @@
             <div class="panel" style="padding: 20px; height: 400px; margin-top:20px"><canvas id="annualChart"></canvas></div>
         </div>
 
-        <!-- PAGE: ACCOUNTS LIST -->
         <div id="accounts" class="page">
             <h1>Mes Comptes</h1>
             <p style="color:var(--text-light); margin-bottom:20px"><i class="fas fa-info-circle"></i> Cliquez sur le montant d'un compte pour ajuster son solde réel.</p>
             <div id="accounts-list-display" class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
-                <!-- Account cards injected here -->
-            </div>
+                </div>
         </div>
 
-        <!-- PAGE: DASHBOARD (MONTH) -->
         <div id="dashboard" class="page">
             <div class="header-controls">
                 <h1>Tableau de Bord</h1>
@@ -402,7 +389,6 @@
                     <div style="text-align: center;"><small style="font-weight:bold;">RESTE A VIVRE (GLOBAL)</small><div class="kpi-val" id="month-remaining">0 €</div></div>
                 </div>
                 
-                <!-- NEW GLOBAL VISUAL: BUDGET GAUGE -->
                 <div class="panel span-2" style="padding:20px; justify-content:center">
                     <small style="font-weight:bold; color:var(--text-light); text-align:center; display:block">TAUX DE CONSOMMATION DU BUDGET</small>
                     <div class="budget-gauge-container">
@@ -414,7 +400,6 @@
                 <div class="panel" style="padding:20px; text-align:center; justify-content:center"><small style="font-weight:bold; color:var(--text-light)">TOTAL DÉPENSÉ</small><div class="kpi-val" id="month-spent">0 €</div></div>
                 <div class="panel" style="padding:20px; text-align:center; justify-content:center"><small style="font-weight:bold; color:var(--text-light)">TAUX ENDETTEMENT</small><div class="kpi-val" id="month-ratio">0%</div></div>
                 
-                <!-- UPDATED: SYNTHESE BUDGETAIRE (ex Flux Financiers) -->
                 <div class="panel span-2"><div class="panel-header h-blue">Synthèse Budgétaire</div>
                     <table>
                         <thead><tr><th>Poste</th><th style="text-align:right">Budget</th><th style="text-align:right">Réel</th><th style="text-align:right">Écart</th></tr></thead>
@@ -431,7 +416,6 @@
                 
                 <div class="panel span-2" style="background:var(--panel-bg); height: 250px; padding: 10px; justify-content: center;"><canvas id="monthChart" style="max-height: 100%;"></canvas></div>
                 
-                <!-- NEW BALANCED ROW: 3 EQUAL COLUMNS -->
                 <div class="tri-grid">
                     <div class="panel"><div class="panel-header h-purple">Charges Fixes</div><table id="table-fixed-header"><thead><tr><th>Poste</th><th>Budget</th><th>Réel</th><th>Écart</th></tr></thead><tbody id="table-fixed"></tbody></table></div>
                     <div class="panel"><div class="panel-header h-yellow">Variables</div><table id="table-variable-header"><thead><tr><th>Poste</th><th>Budget</th><th>Réel</th><th>Reste</th></tr></thead><tbody id="table-variable"></tbody></table></div>
@@ -442,7 +426,6 @@
             </div>
         </div>
 
-        <!-- PAGE: CREDITS -->
         <div id="credits" class="page">
             <h1>Gestion des Crédits</h1>
             <div class="panel" style="padding: 25px; margin-bottom: 30px; border-top: 4px solid var(--danger);">
@@ -463,7 +446,6 @@
             <div class="dashboard-grid"><div class="panel span-4"><table><thead><tr><th>Nom</th><th>Restant Dû / Total</th><th>Mensualité</th><th>Fin</th><th>Progression</th><th>Action</th></tr></thead><tbody id="credits-list-body"></tbody></table></div></div>
         </div>
 
-        <!-- PAGE: CHARGES FIXES -->
         <div id="charges" class="page">
             <h1>Charges Fixes Automatiques</h1>
             <div class="panel" style="padding: 25px; margin-bottom: 30px; border-top: 4px solid #c084fc;">
@@ -488,7 +470,6 @@
             </div>
         </div>
 
-        <!-- PAGE: TRANSACTIONS (WITH TRANSFER) -->
         <div id="transactions" class="page">
             <h1>Opérations</h1>
             
@@ -505,13 +486,11 @@
                         </select>
                     </div>
 
-                    <!-- STANDARD FIELDS -->
                     <div id="div-standard-fields" style="display:contents;">
                         <div class="form-group large"><span class="form-label">Compte</span><select id="t-account"></select></div>
                         <div class="form-group large"><span class="form-label">Catégorie</span><select id="t-cat"></select></div>
                     </div>
 
-                    <!-- TRANSFER FIELDS (Hidden by default) -->
                     <div id="div-transfer-fields" style="display:contents;" class="hidden">
                         <div class="form-group large"><span class="form-label">Compte Source (Débit)</span><select id="t-transfer-source"></select></div>
                         <div class="form-group large"><span class="form-label">Compte Destination (Crédit)</span><select id="t-transfer-dest"></select></div>
@@ -556,7 +535,6 @@
             </div>
         </div>
 
-        <!-- PAGE: SETTINGS -->
         <div id="settings" class="page">
             <h1>Catégories & Comptes</h1>
             
@@ -574,7 +552,6 @@
                 </div>
             </div>
 
-            <!-- ACCOUNTS MANAGEMENT SECTION -->
             <div class="panel" style="margin-bottom:30px; border-top: 4px solid var(--primary);">
                 <div class="panel-header h-blue" style="text-align:left; padding-left:20px; display:flex; justify-content:space-between; align-items:center;">
                     <span>Gestion des Comptes Bancaires</span>
@@ -1031,8 +1008,8 @@
                 // Find amount from recurring config or budget
                 if(state.recurring[cat]) amount = state.recurring[cat].amount;
                 else {
-                     const key = `${currentMonth}-${cat}`;
-                     if(state.budgets[key]) amount = state.budgets[key];
+                      const key = `${currentMonth}-${cat}`;
+                      if(state.budgets[key]) amount = state.budgets[key];
                 }
                 
                 const defaultAccId = state.accounts.length > 0 ? state.accounts[0].id : 'main';
@@ -1095,8 +1072,19 @@
         };
         window.editRecurring = (name) => { const config = state.recurring[name]; document.getElementById('r-name').value = name; document.getElementById('r-amount').value = config.amount; document.getElementById('r-day').value = config.day; editingChargeName = name; document.getElementById('btn-add-recurring').innerText = "Modifier l'automatisation"; document.getElementById('btn-add-recurring').className = "btn btn-warning"; document.getElementById('btn-cancel-recurring').style.display = "inline-flex"; };
         window.cancelEditRecurring = () => { editingChargeName = null; ['r-name','r-amount','r-day'].forEach(id => document.getElementById(id).value = ''); document.getElementById('btn-add-recurring').innerText = "Ajouter l'automatisation"; document.getElementById('btn-add-recurring').className = "btn btn-primary"; document.getElementById('btn-add-recurring').style.backgroundColor = "#c084fc"; document.getElementById('btn-cancel-recurring').style.display = "none"; };
-        window.deleteRecurring = async (name) => { if(await confirmModal(`Supprimer l'automatisation pour ${safe(name)} ?`)) { delete state.recurring[name]; await setDoc(doc(db, "users_settings", currentUser.uid), { recurring: state.recurring }, { merge: true }); notify("Supprimé"); } };
 
+window.deleteRecurring = async (name) => { 
+    if(await confirmModal(`Supprimer l'automatisation pour ${safe(name)} ?`)) { 
+        delete state.recurring[name]; 
+        
+        // CORRECTION : On utilise updateDoc pour écraser la liste des charges par la nouvelle
+        await updateDoc(doc(db, "users_settings", currentUser.uid), { recurring: state.recurring }); 
+        
+        notify("Supprimé"); 
+        // On rafraichit l'affichage immédiatement
+        refreshUI(); 
+    } 
+};
         window.addCredit = async () => { 
             const name = document.getElementById('c-name').value; const total = parseFloat(document.getElementById('c-total').value); const monthly = parseFloat(document.getElementById('c-monthly').value); const rate = document.getElementById('c-rate').value; const start = document.getElementById('c-start').value; const end = document.getElementById('c-end').value; const day = parseInt(document.getElementById('c-day').value);
             if(!name || isNaN(monthly) || !start || !end) return notify('Champs requis manquants', 'error');
