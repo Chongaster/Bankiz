@@ -105,20 +105,20 @@
         .nav-item.active { background: var(--blue-light); color: var(--primary); font-weight: bold; }
         .logout-btn { margin-top: auto; color: var(--danger); background: var(--red-light); }
         .logout-btn:hover { background: #fecaca; color: #dc2626; }
+        .theme-toggle { margin-top: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 10px; border-radius: 8px; background: var(--bg); color: var(--text); }
         
         /* LOGO */
         .logo-container { margin-top: auto; margin-bottom: 15px; text-align: center; }
         .logo-img { width: 40px; height: 40px; object-fit: contain; display: block; margin: 0 auto; image-rendering: pixelated; }
 
         /* DESKTOP TOGGLE BUTTON */
-        #desktop-menu-btn { display: none; cursor: pointer; color: var(--primary); }
+        /* FIXED: Removed :not(.nav-temp-open) so button stays visible */
+        #desktop-menu-btn { display: none; position: fixed; top: 15px; left: 20px; z-index: 100; background: var(--panel-bg); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; cursor: pointer; box-shadow: var(--shadow); color: var(--primary); }
 
         /* NEW DESKTOP NAV LOGIC */
         /* When preference 'auto-hide' is ON */
         body.desktop-auto-hide nav { width: 0; padding: 0; border: none; overflow: hidden; }
-        
-        /* Show button ONLY when nav is HIDDEN on desktop */
-        body.desktop-auto-hide:not(.nav-temp-open) #desktop-menu-btn { display: block; margin-left: 10px; }
+        body.desktop-auto-hide #desktop-menu-btn { display: block; }
         
         /* Exception: When we temporarily open it */
         body.desktop-auto-hide.nav-temp-open nav { width: 260px; padding: 20px; border-right: 1px solid var(--border); }
@@ -184,7 +184,8 @@
         .progress-fill { height: 100%; background: var(--danger); transition: width 0.3s; }
 
         /* CHECKBOX CUSTOM */
-        .check-box { width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary); }
+        /* FIXED: Display block was removed by switch style. Re-enabling for table */
+        table .check-box { display: inline-block; width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary); }
         .row-checked td { opacity: 0.5; background-color: var(--bg); }
         .row-checked td .amount-cell { text-decoration: line-through; }
 
@@ -263,9 +264,10 @@
         .switch-label { display: flex; align-items: center; cursor: pointer; gap: 10px; margin-bottom: 15px; font-weight:500; }
         .toggle-switch { position: relative; width: 40px; height: 20px; background: #ccc; border-radius: 20px; transition: 0.3s; }
         .toggle-switch:after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: 0.3s; }
-        input[type="checkbox"]:checked + .toggle-switch { background: var(--primary); }
-        input[type="checkbox"]:checked + .toggle-switch:after { left: 22px; }
-        input[type="checkbox"] { display: none; }
+        /* Scoped to switch-label to avoid hiding ALL checkboxes */
+        .switch-label input[type="checkbox"] { display: none; }
+        .switch-label input[type="checkbox"]:checked + .toggle-switch { background: var(--primary); }
+        .switch-label input[type="checkbox"]:checked + .toggle-switch:after { left: 22px; }
 
     </style>
 </head>
@@ -334,6 +336,11 @@
             <i class="fas fa-bars fa-lg" style="color:var(--text); cursor:pointer" onclick="window.toggleNav()"></i>
             <h2 style="margin:0; font-size:1.2rem; color:var(--primary)"><i class="fas fa-igloo"></i> Bankiz</h2>
         </div>
+    </div>
+
+    <!-- Desktop Menu Trigger (Visible only when nav auto-hide preference is enabled) -->
+    <div id="desktop-menu-btn" onclick="window.toggleDesktopNav()">
+        <i class="fas fa-bars fa-lg"></i>
     </div>
 
     <!-- Navigation -->
@@ -1286,14 +1293,9 @@
             state.credits.forEach(c => { credTable.innerHTML += `<tr><td>${safe(c.name)}</td><td class="amount-cell text-red">${c.monthly.toFixed(2)} €</td></tr>`; });
 
             const totalExpensesCents = stats.fix.r + stats.var.r + realCreditsPaidCents; 
-            
-            // Reste à vivre PROJECTION (Option B)
-            const totalProjectedExpensesCents = stats.fix.p + budgetedCreditsCents + stats.var.r;
-            const remainingCents = stats.inc.p - totalProjectedExpensesCents;
-            
+            const remainingCents = stats.inc.r - totalExpensesCents;
             const remainingVal = remainingCents / 100;
             const alertClass = (remainingVal < 250) ? 'text-red' : '';
-            
             const creditToUse = realCreditsPaidCents > 0 ? realCreditsPaidCents : budgetedCreditsCents;
             const incomeToUse = stats.inc.r > 0 ? stats.inc.r : stats.inc.p;
             const monthRatio = incomeToUse > 0 ? (creditToUse / incomeToUse) * 100 : 0;
